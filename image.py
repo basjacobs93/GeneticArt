@@ -1,7 +1,10 @@
-from typing import List
+from typing import List, Tuple
 from pandas import DataFrame
-from plotnine import *
-
+#from plotnine import *
+from skimage.draw import rectangle
+from skimage import io
+import numpy as np
+import skimage
 
 class Shape(List):
     """
@@ -15,12 +18,19 @@ class Rectangle(Shape):
     """
     Rectangle, should have xmin, xmax, ymin and ymax
     """
-    def show(self) -> geom_rect:
-        return geom_rect(
-            data = self.df,
-            mapping = aes(xmin = "xmin", xmax = "xmax",
-                          ymin = "ymin", ymax = "ymax"),
-            fill = self.df.color)
+
+    def __init__(self, xmin: float, xmax: float,
+                 ymin: float, ymax: float, color: Tuple[int]) -> None:
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
+        self.color = color
+
+    def generate(self, shape: Tuple) -> List[int]:
+        return rectangle(start = (self.xmin, self.ymin),
+                         end   = (self.xmax, self.ymax),
+                         shape = shape)
 
 
 class Image(List):
@@ -33,26 +43,32 @@ class Image(List):
         self.width = width
         self.height = height
         self.fitness = None
-        pass
+
+        self.img = self.generate()
+
+    def generate(self) -> np.ndarray:
+        """
+        Create matrix image representation
+        """
+        img = np.ones((self.width, self.height, 3), dtype=float)
+
+        for element in self.elements:
+            rr, cc = element.generate((self.width, self.height))
+            img[rr, cc] = element.color
+
+        return img
 
     def show(self) -> None:
-        plot = (ggplot() +
-                # make plot white, add border
-                theme(line = element_blank(),
-                      text = element_blank(),
-                      title = element_blank(),
-                      plot_background = element_blank(),
-                      panel_border = element_rect(colour = "black",
-                                                    fill = None, size = 1)) +
-                xlim(0, self.width) + ylim(0, self.height))
-        # add elements to plot
-        for element in self.elements:
-            plot += element.show()
-        print(plot)
+        io.imshow(self.img)
+        io.show()
 
 
 if __name__ == "__main__":
-    rect1 = Rectangle(xmin = 2, xmax = 3, ymin = 2, ymax = 3, color = "blue")
-    rect2 = Rectangle(xmin = 4, xmax = 7, ymin = 5, ymax = 6, color = "red")
-    im = Image(10, 10, [rect1, rect2])
+    #skimage.io.use_plugin("pil")
+    rect1 = Rectangle(xmin = 2, xmax = 3, ymin = 2, ymax = 3, color = (0.1, 0.4, 0.1))
+    rect2 = Rectangle(xmin = 4, xmax = 7, ymin = 5, ymax = 6, color = (0.4, 0.1, 0.1))
+    rect3 = Rectangle(xmin = 1, xmax = 6, ymin = 8, ymax = 9, color = (0.4, 0.2, 0.8))
+    im = Image(10, 10, [rect1, rect2, rect3])
     im.show()
+
+
