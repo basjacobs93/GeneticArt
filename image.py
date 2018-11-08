@@ -32,12 +32,14 @@ class Rectangle(Shape):
                          shape = shape)
 
     def mutate(self):
-        xmin = self.xmin + np.random.randint(11) - 5
-        xmax = self.xmax + np.random.randint(11) - 5
-        ymin = self.ymin + np.random.randint(11) - 5
-        ymax = self.ymax + np.random.randint(11) - 5
-        color = np.clip(self.color + np.random.random(3) - 0.5, 0, 1)
-        return Rectangle(xmin, xmax, ymin, ymax, color)
+        self.xmin = self.xmin + np.random.randint(11) - 5
+        self.xmax = self.xmax + np.random.randint(11) - 5
+        self.ymin = self.ymin + np.random.randint(11) - 5
+        self.ymax = self.ymax + np.random.randint(11) - 5
+        self.color = np.clip(self.color + np.random.random(3) - 0.5, 0, 1)
+
+    def copy(self):
+        return Rectangle(self.xmin, self.xmax, self.ymin, self.ymax, self.color)
 
     def __str__(self):
         return f"from: ({self.xmin}, {self.ymin}), to: ({self.xmax}, {self.ymax})"
@@ -79,4 +81,8 @@ class Image(List):
         Calculate difference between images
         """
         return 1 - np.mean(np.sum(abs(img-self.img), axis = 2)/3)
+
+    def copy(self):
+        new_elems = [elem.copy() for elem in self.elements]
+        return Image(self.shape, new_elems)
 

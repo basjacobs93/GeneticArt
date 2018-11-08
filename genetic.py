@@ -60,15 +60,14 @@ def group_entities(population: List[Image]) -> List[Tuple[int]]:
     Take a population and return groups of
     entities to be used in crossover
     """
-    return [(i, i+1) for i in range(0, len(population)//2, 2)]
+    return [(i, len(population)-i-1) for i in range(0, len(population)//2)]
 
 
 def crossover(group: List[Image]) -> Image:
     """
     Take a group of parents and return a child
     """
-
-    elems = [elem for entity in group for elem in entity.elements]
+    elems = [elem.copy() for entity in group for elem in entity.elements]
 
     inds = np.random.choice(len(elems), size = len(group[0].elements), replace = False)
     return Image((IM_SIZE, IM_SIZE), [elems[ind] for ind in inds])
@@ -80,18 +79,27 @@ def mutate(entity: Image) -> Image:
     a mutated version
     """
 
+    new_entity = entity.copy()
+
     # change order of elements
-    if np.random.random() < 0.2:
-        np.random.shuffle(entity.elements)
+    if np.random.random() < 0.3:
+        np.random.shuffle(new_entity.elements)
+        new_entity.generate()
 
     # resize a random element
-    if np.random.random() < 0.2:
-        elem_id = np.random.randint(0, len(entity.elements))
-        entity.elements[elem_id].mutate()
-        # make sure entity knows its elements have changed
-        entity.generate()
+    if np.random.random() < 0.3:
+        elem_id = np.random.randint(0, len(new_entity.elements))
+        new_entity.elements[elem_id].mutate()
+        new_entity.generate()
 
-    return entity
+    # remove element
+    if np.random.random() < 0.3:
+        if len(new_entity.elements) > 2:
+            del_id = np.random.randint(len(new_entity.elements))
+            del new_entity.elements[del_id]
+            new_entity.generate()
+
+    return new_entity
 
 
 def crossover_population(population: List[Image],
@@ -99,31 +107,23 @@ def crossover_population(population: List[Image],
     """
     Apply crossover between elements in groupings
     """
-    old_pop = population
 
-    # keep best third of elements
-    population = old_pop[:POP_SIZE//3]
+    # keep best couple of elements
+    offspring = []
     
     # add offspring
     for group in groupings:
-        parents = [old_pop[i] for i in group]
+        parents = [population[i] for i in group]
         entity = crossover(parents)
 
-        population.append(entity)
-    
-    # fill to old size with worst population entities
-    if POP_SIZE > len(population):
-        population += old_pop[len(population):]
+        offspring.append(entity)
 
-    return population
+    return offspring
 
 
 def mutate_population(population: List[Image]) -> List[Image]:
-    # mutate the worst entities
-    mutants = [mutate(entity) for entity in population]
-    mutant_ids = np.random.choice(range(len(mutants)), size = POP_SIZE-POP_SIZE//4, replace = False)
+    return [mutate(entity) for entity in population]
 
-    return population[:POP_SIZE//4] + mutants[mutant_ids]
 
 def runga():
     """
@@ -133,24 +133,27 @@ def runga():
 
     for gen in range(N_GEN):
         # order population, assign fitnesses
-        population = evaluate_population(population, (gen % 10) == 9)
-        groupings  = group_entities(population)
-        population = crossover_population(population, groupings)
-        population = mutate_population(population)
-
+        population = evaluate_population(population, True)
+        # best individuals survive
+        n = POP_SIZE//3
+        survivors  = population[:n + (POP_SIZE % 3)]
+        groupings  = group_entities(population[:(2*n)])
+        children   = crossover_population(population[:(2*n)], groupings)
+        mutants    = mutate_population(population[:n])
+        population = survivors + children + mutants
 
 if __name__ == "__main__":
-    POP_SIZE = 100
+    POP_SIZE = 50
     N_GEN = 1000
     IM_SIZE = 100
 
-    url = "blueslidepark.jpg"
+    url = "leeway.jpg"
     img = imread(url)
     img = resize(img, (IM_SIZE, IM_SIZE), mode='reflect', anti_aliasing=True)
     plt.imshow(img)
     plt.ion()
     plt.show()
-    plt.pause(0.001)
+    plt.pause(0.0001)
 
     runga()
 
