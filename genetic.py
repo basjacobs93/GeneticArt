@@ -29,7 +29,7 @@ def create_initial_population() -> List[Image]:
     return [random_image() for _ in range(POP_SIZE)]
 
 
-def evaluate_population(population: List[Image], show: bool) -> List[Image]:
+def evaluate_population(population: List[Image]) -> List[Image]:
     """
     Calculate fitness per entity, return ordered
     """
@@ -40,10 +40,6 @@ def evaluate_population(population: List[Image], show: bool) -> List[Image]:
 
     # sort population in order of scores
     scores, population = zip(*sorted(zip(scores, population), reverse = True))
-    # plot best image
-    if show:
-        print(f"fitness: {np.round(scores[:3], 2)}, {np.round(scores[-3:], 2)}")
-        population[0].show()
 
     return list(population)
 
@@ -69,7 +65,10 @@ def crossover(group: List[Image]) -> Image:
     """
     elems = [elem.copy() for entity in group for elem in entity.elements]
 
-    inds = np.random.choice(len(elems), size = len(group[0].elements), replace = False)
+    # Child has average number of elements
+    avg_len = len(elems) // len(group)
+
+    inds = np.random.choice(len(elems), size = avg_len, replace = False)
     return Image((IM_SIZE, IM_SIZE), [elems[ind] for ind in inds])
 
 
@@ -81,23 +80,36 @@ def mutate(entity: Image) -> Image:
 
     new_entity = entity.copy()
 
+    # 80% change of not doing anything
+    if np.random.random() > 0.2:
+        return new_entity
+
+    rnd = np.random.random()
+
     # change order of elements
-    if np.random.random() < 0.3:
+    if rnd < 0.25:
         np.random.shuffle(new_entity.elements)
-        new_entity.generate()
 
     # resize a random element
-    if np.random.random() < 0.3:
+    elif rnd < 0.5:
         elem_id = np.random.randint(0, len(new_entity.elements))
         new_entity.elements[elem_id].mutate()
-        new_entity.generate()
 
     # remove element
-    if np.random.random() < 0.3:
-        if len(new_entity.elements) > 2:
-            del_id = np.random.randint(len(new_entity.elements))
-            del new_entity.elements[del_id]
-            new_entity.generate()
+    elif rnd < 0.75:
+        del_id = np.random.randint(len(new_entity.elements))
+        del new_entity.elements[del_id]
+
+    # add element
+    else:
+        # max 10 elements
+        if len(new_entity.elements) < 10:
+            xmin, xmax, ymin, ymax = np.random.randint(0, IM_SIZE, size = 4)
+            color = np.random.random(3)
+            rect = Rectangle(xmin, xmax, ymin, ymax, color)
+            new_entity.elements.append(rect)
+    
+    new_entity.generate()
 
     return new_entity
 
@@ -131,9 +143,21 @@ def runga():
     """
     population = create_initial_population()
 
+    last_fitness = 0
+
     for gen in range(N_GEN):
         # order population, assign fitnesses
-        population = evaluate_population(population, True)
+        population = evaluate_population(population)
+
+        # plot best image
+        if population[0].fitness > last_fitness:
+            last_fitness = population[0].fitness
+            print(f"{last_fitness}")
+            # plt.show()
+            # plt.pause(0.0001)
+            population[0].save(f"progress/{gen}.jpg")
+
+
         # best individuals survive
         n = POP_SIZE//3
         survivors  = population[:n + (POP_SIZE % 3)]
@@ -142,18 +166,21 @@ def runga():
         mutants    = mutate_population(population[:n])
         population = survivors + children + mutants
 
+    population[0].save("out.jpg")
+
+
 if __name__ == "__main__":
-    POP_SIZE = 50
+    POP_SIZE = 200
     N_GEN = 1000
     IM_SIZE = 100
 
-    url = "leeway.jpg"
+    url = "daysofwineandroses.jpg"
     img = imread(url)
     img = resize(img, (IM_SIZE, IM_SIZE), mode='reflect', anti_aliasing=True)
     plt.imshow(img)
     plt.ion()
-    plt.show()
-    plt.pause(0.0001)
+    # plt.show()
+    # plt.pause(0.0001)
 
     runga()
 

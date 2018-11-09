@@ -3,7 +3,6 @@ Generate art using a Genetic Algorithm
 
 # Requirements
  - Anaconda
- - Plotnine
- - py.test
+ - matplotlib
 
 Setup based on https://github.com/WestleyArgentum/GeneticAlgorithms.jl

@@ -32,11 +32,11 @@ class Rectangle(Shape):
                          shape = shape)
 
     def mutate(self):
-        self.xmin = self.xmin + np.random.randint(11) - 5
-        self.xmax = self.xmax + np.random.randint(11) - 5
-        self.ymin = self.ymin + np.random.randint(11) - 5
-        self.ymax = self.ymax + np.random.randint(11) - 5
-        self.color = np.clip(self.color + np.random.random(3) - 0.5, 0, 1)
+        self.xmin = self.xmin + np.random.randint(21) - 10
+        self.xmax = self.xmax + np.random.randint(21) - 10
+        self.ymin = self.ymin + np.random.randint(21) - 10
+        self.ymax = self.ymax + np.random.randint(21) - 10
+        self.color = np.clip(self.color + (np.random.random(3)-.5)/5, 0, 1)
 
     def copy(self):
         return Rectangle(self.xmin, self.xmax, self.ymin, self.ymax, self.color)
@@ -70,10 +70,13 @@ class Image(List):
         self.img = img
 
     def show(self) -> None:
+        plt.clf() # to prevent slowing down, close previous plot
         plt.imshow(self.img)
         plt.ion()
-        plt.show()
-        plt.pause(0.001)
+
+    def save(self, name: str) -> None:
+        self.show()
+        plt.savefig(name)
 
 
     def diff(self, img: np.ndarray) -> float:
